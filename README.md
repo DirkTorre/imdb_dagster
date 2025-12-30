@@ -63,8 +63,7 @@ To learn more about this template and Dagster in general:
 - [Dagster Slack Community](https://dagster.io/slack)
 
 ## Todo
-
-- generate final_status, final_date_scores, watch_list.xlsx
+- create more checks: have this planned in checks.py file
 - clean up code (remove redundancy)
 - automatic download of files every day
 - automatic materialization of needed assets when date_score.csv or status.csv changes

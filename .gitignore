@@ -205,4 +205,4 @@ __marimo__/
 
 # custom
 .tmp_dagster_home_*
-data/raw/
+data/inputs/imdb_files/

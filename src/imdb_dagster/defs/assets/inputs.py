@@ -7,10 +7,8 @@ import time
 
 from src.imdb_dagster.defs.assets import constants
 
-@dg.asset(
-    group_name="raw_files",
-    description="imdb file title_basics.csv"
-)
+
+@dg.asset(group_name="inputs", description="imdb file title_basics.csv")
 def title_basics():
     file_exists = os.path.exists(constants.TITLE_BASICS_FILE_PATH)
     mod_time = os.path.getmtime(constants.TITLE_BASICS_FILE_PATH)
@@ -29,12 +27,12 @@ def title_basics():
     fresh_download = False
 
     # download if file not there
-    if not file_exists or time_passed > 3600*24:
+    if not file_exists or time_passed > 3600 * 24:
         response = requests.get("https://datasets.imdbws.com/title.basics.tsv.gz")
         with open(constants.TITLE_BASICS_FILE_PATH, "wb") as output_file:
             output_file.write(response.content)
         fresh_download = True
-    
+
     # load file
     title_basics = pd.read_csv(
         constants.TITLE_BASICS_FILE_PATH,
@@ -53,13 +51,11 @@ def title_basics():
         metadata={
             "total records": dg.MetadataValue.int(title_basics.shape[0]),
             "fresh download": dg.MetadataValue.bool(fresh_download),
-        }
+        },
     )
 
-@dg.asset(
-    group_name="raw_files",
-    description="imdb file title_ratings.csv"
-)
+
+@dg.asset(group_name="inputs", description="imdb file title_ratings.csv")
 def title_ratings():
     file_exists = os.path.exists(constants.TITLE_RATINGS_FILE_PATH)
     mod_time = os.path.getmtime(constants.TITLE_RATINGS_FILE_PATH)
@@ -70,12 +66,12 @@ def title_ratings():
     fresh_download = False
 
     # download if file not there
-    if not file_exists or time_passed > 3600*24:
+    if not file_exists or time_passed > 3600 * 24:
         response = requests.get("https://datasets.imdbws.com/title.ratings.tsv.gz")
         with open(constants.TITLE_RATINGS_FILE_PATH, "wb") as output_file:
             output_file.write(response.content)
         fresh_download = True
-    
+
     # load file
     title_ratings = pd.read_csv(
         constants.TITLE_RATINGS_FILE_PATH,
@@ -93,13 +89,13 @@ def title_ratings():
         metadata={
             "total records": dg.MetadataValue.int(title_ratings.shape[0]),
             "fresh download": dg.MetadataValue.bool(fresh_download),
-        }
+        },
     )
 
 
 @dg.asset(
-    group_name="raw_files",
-    description="The dates movies have been watched and scores I gave them"
+    group_name="inputs",
+    description="The dates movies have been watched and scores I gave them",
 )
 def watched_dates_and_scores():
     dtypes = {
@@ -131,15 +127,15 @@ def watched_dates_and_scores():
             "has no enjoyment score": dg.MetadataValue.int(int(enjoyment_count[True])),
             "has quality score": dg.MetadataValue.int(int(quality_counts[False])),
             "has no quality score": dg.MetadataValue.int(int(quality_counts[True])),
-        }
+        },
     )
 
 
 @dg.asset(
-    group_name="raw_files",
-    description="My movie list with info about if they have been watched and where they can be viewed"
+    group_name="inputs",
+    description="My movie list with info about if they have been watched and where they can be viewed",
 )
-def watchlist():
+def watch_status():
     dtypes = {
         "tconst": pd.StringDtype(),
         "watched": pd.BooleanDtype(),
@@ -160,31 +156,8 @@ def watchlist():
             "watched": dg.MetadataValue.int(watched),
             "unwatched": dg.MetadataValue.int(unwatched),
             "tabular_data": dg.MetadataValue.md(status.head().to_markdown()),
-            "table_schema": create_table_schema_metadata_from_dataframe(status), # does not include index...
-            }
-    )
-
-
-@dg.asset_check(asset=watchlist)
-def watchlist_has_no_duplicate_tconst():
-    dtypes = {
-        "tconst": pd.StringDtype(),
-        "watched": pd.BooleanDtype(),
-        "priority": pd.BooleanDtype(),
-        "netflix": pd.BooleanDtype(),
-        "prime": pd.BooleanDtype(),
-    }
-    
-    status = pd.read_csv(constants.STATUS_FILE_PATH, dtype=dtypes, index_col="tconst")
-    
-    duplicated = status.index.duplicated()
-    dups = []
-    if duplicated.any():
-        dups = list(status[duplicated].index)
-    
-    return dg.AssetCheckResult(
-        passed = len(dups) == 0,
-        metadata= {
-            "duplicate id's": dups,
-        }
+            "table_schema": create_table_schema_metadata_from_dataframe(
+                status
+            ),  # does not include index...
+        },
     )
