@@ -63,8 +63,8 @@ To learn more about this template and Dagster in general:
 - [Dagster Slack Community](https://dagster.io/slack)
 
 ## Todo
-- create more checks: have this planned in checks.py file
-- clean up code (remove redundancy)
-- automatic download of files every day
+- automatic download of files every day + create freshness check : https://docs.dagster.io/guides/test/data-freshness-testing + https://docs.dagster.io/guides/observe/asset-freshness-policies
 - automatic materialization of needed assets when date_score.csv or status.csv changes
+- add the visualisation
+- clean up code (remove redundancy)
 - document code
