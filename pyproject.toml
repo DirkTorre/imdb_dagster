@@ -3,6 +3,7 @@ name = "imdb_dagster"
 requires-python = ">=3.10,<3.15"
 version = "0.1.0"
 dependencies = [
+    "bokeh>=3.8.2",
     "dagster==1.12.8",
     "dagster-pandas>=0.28.8",
     "pandas>=2.3.3",

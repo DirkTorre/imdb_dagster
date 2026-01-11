@@ -76,12 +76,11 @@ The dependencies of the asset have changed
 The data version of a parent asset has changed due to a new materialization
 
 
+1. add better dataframe descriptions in assets
+2. clean up code (remove redundancy)
 3. create job for generating the excel file (elke 5 minuten elke niet gesyncde upstream assets ) << later
-
-6. add the visualisation
-7. clean up code (remove redundancy)
-8. document code
-9. finish course
+4. document code
+5. finish course
 
 ## Done
  
@@ -90,4 +89,5 @@ de assets voor het downloaden checkt of de files al op de schijf staan en of dez
 
 
 - automatic download of files every day + create freshness check : https://docs.dagster.io/guides/test/data-freshness-testing + https://docs.dagster.io/guides/observe/asset-freshness-policies
-- 5. fix the problems with the checks <<<<< see TODO
+- fix the problems with the checks
+- add the visualisation

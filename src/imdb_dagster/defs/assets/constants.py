@@ -5,6 +5,7 @@ TITLE_RATINGS_FILE_PATH = "data/inputs/imdb_files/title.ratings.tsv.gz"
 DATES_AND_SCORES_FILE_PATH = "data/inputs/handmade_files/date_scores.csv"
 STATUS_FILE_PATH = "data/inputs/handmade_files/status.csv"
 PRODUCT_EXCEL_FILE_PATH = "data/products/watch_list.xlsx"
+PRODUCT_FIGURE_FILE_PATH = "data/products/watch_list.html"
 # unsynced_condition = (
 #     (
 #         dg.AutomationCondition.any_deps_updated()  # Any upstream has updated
