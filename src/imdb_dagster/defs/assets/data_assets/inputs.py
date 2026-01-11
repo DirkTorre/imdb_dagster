@@ -7,136 +7,30 @@ import time
 from datetime import datetime, timedelta
 
 from src.imdb_dagster.defs.assets import constants
-
 from . import raw_inputs
+from .... import helpers
 
 
-# @dg.asset(group_name="inputs", description="imdb file title_basics.csv")
-# def title_basics():
-#     file_exists = os.path.exists(constants.TITLE_BASICS_FILE_PATH)
-#     mod_time = os.path.getmtime(constants.TITLE_BASICS_FILE_PATH)
-#     current_time = time.time()
-#     time_passed = current_time - mod_time
-
-#     cols_to_use = [
-#         "tconst",
-#         "primaryTitle",
-#         "originalTitle",
-#         "startYear",
-#         "runtimeMinutes",
-#         "genres",
-#     ]
-#     dtypes = {"startYear": pd.Int32Dtype(), "runtimeMinutes": pd.Int32Dtype()}
-#     fresh_download = False
-
-#     # download if file not there
-#     if not file_exists or time_passed > 3600 * 24:
-#         response = requests.get("https://datasets.imdbws.com/title.basics.tsv.gz")
-#         with open(constants.TITLE_BASICS_FILE_PATH, "wb") as output_file:
-#             output_file.write(response.content)
-#         fresh_download = True
-
-#     # load file
-#     title_basics = pd.read_csv(
-#         constants.TITLE_BASICS_FILE_PATH,
-#         sep="\t",
-#         quotechar="\t",
-#         low_memory=False,
-#         dtype_backend="pyarrow",
-#         usecols=cols_to_use,
-#         index_col="tconst",
-#         dtype=dtypes,
-#         na_values="\\N",
-#     )
-
-#     return dg.MaterializeResult(
-#         value=title_basics,
-#         metadata={
-#             "total records": dg.MetadataValue.int(title_basics.shape[0]),
-#             "fresh download": dg.MetadataValue.bool(fresh_download),
-#         },
-#     )
-
-
-# @dg.asset(group_name="inputs", description="imdb file title_ratings.csv")
-# def title_ratings():
-#     file_exists = os.path.exists(constants.TITLE_RATINGS_FILE_PATH)
-#     mod_time = os.path.getmtime(constants.TITLE_RATINGS_FILE_PATH)
-#     current_time = time.time()
-#     time_passed = current_time - mod_time
-
-#     dtypes = {"averageRating": pd.Float32Dtype(), "numVotes": pd.Int32Dtype()}
-#     fresh_download = False
-
-#     # download if file not there
-#     if not file_exists or time_passed > 3600 * 24:
-#         response = requests.get("https://datasets.imdbws.com/title.ratings.tsv.gz")
-#         with open(constants.TITLE_RATINGS_FILE_PATH, "wb") as output_file:
-#             output_file.write(response.content)
-#         fresh_download = True
-
-#     # load file
-#     title_ratings = pd.read_csv(
-#         constants.TITLE_RATINGS_FILE_PATH,
-#         sep="\t",
-#         quotechar="\t",
-#         low_memory=False,
-#         dtype_backend="pyarrow",
-#         index_col="tconst",
-#         dtype=dtypes,
-#         na_values="\\N",
-#     )
-
-#     return dg.MaterializeResult(
-#         value=title_ratings,
-#         metadata={
-#             "total records": dg.MetadataValue.int(title_ratings.shape[0]),
-#             "fresh download": dg.MetadataValue.bool(fresh_download),
-#         },
-#     )
-
-
-
-
-# Asset for the processed DataFrame
-@dg.asset(
-    deps=[raw_inputs.title_ratings],
-    group_name="inputs",
-    description="Processed IMDB title_ratings DataFrame",
-)
-def title_ratings(context: dg.AssetExecutionContext):
-    """Load and process the title_basics file into a DataFrame."""
-    
-    dtypes = {"averageRating": pd.Float32Dtype(), "numVotes": pd.Int32Dtype()}
-
-    title_ratings_df = pd.read_csv(
-        constants.TITLE_RATINGS_FILE_PATH,
-        sep="\t",
-        quotechar="\t",
-        low_memory=False,
-        dtype_backend="pyarrow",
-        index_col="tconst",
-        dtype=dtypes,
-        na_values="\\N",
-    )
-    
-    return dg.MaterializeResult(
-        value=title_ratings_df,
-        metadata={
-            "total_records": dg.MetadataValue.int(title_ratings_df.shape[0])
-        }
-    )
-
-
-# Asset for the processed DataFrame
 @dg.asset(
     deps=[raw_inputs.title_basics],
     group_name="inputs",
     description="Processed IMDB title_basics DataFrame",
+    metadata={
+        "dagster/column_schema": helpers.get_table_schema(
+            [
+                "tconst",
+                "primaryTitle",
+                "originalTitle",
+                "startYear",
+                "runtimeMinutes",
+                "genres",
+            ]
+        )
+    },
 )
 def title_basics(context: dg.AssetExecutionContext):
     """Load and process the title_basics file into a DataFrame."""
-    
+
     cols_to_use = [
         "tconst",
         "primaryTitle",
@@ -158,18 +52,65 @@ def title_basics(context: dg.AssetExecutionContext):
         dtype=dtypes,
         na_values="\\N",
     )
-    
+
     return dg.MaterializeResult(
         value=title_basics_df,
         metadata={
-            "total_records": dg.MetadataValue.int(title_basics_df.shape[0])
-        }
+            "first 5 rows": helpers.pandas_table_to_dagster_preview(title_basics_df),
+            "total_records": dg.MetadataValue.int(title_basics_df.shape[0]),
+        },
+    )
+
+
+@dg.asset(
+    deps=[raw_inputs.title_ratings],
+    group_name="inputs",
+    description="Processed IMDB title_ratings DataFrame",
+    metadata={
+        "dagster/column_schema": helpers.get_table_schema(
+            ["tconst", "averageRating", "numVotes"]
+        )
+    },
+)
+def title_ratings(context: dg.AssetExecutionContext):
+    """Load and process the title_basics file into a DataFrame."""
+
+    dtypes = {"averageRating": pd.Float32Dtype(), "numVotes": pd.Int32Dtype()}
+
+    title_ratings_df = pd.read_csv(
+        constants.TITLE_RATINGS_FILE_PATH,
+        sep="\t",
+        quotechar="\t",
+        low_memory=False,
+        dtype_backend="pyarrow",
+        index_col="tconst",
+        dtype=dtypes,
+        na_values="\\N",
+    )
+
+    return dg.MaterializeResult(
+        value=title_ratings_df,
+        metadata={
+            "first 5 rows": helpers.pandas_table_to_dagster_preview(title_ratings_df),
+            "total_records": dg.MetadataValue.int(title_ratings_df.shape[0]),
+        },
     )
 
 
 @dg.asset(
     group_name="inputs",
     description="The dates movies have been watched and scores I gave them",
+    metadata={
+        "dagster/column_schema": helpers.get_table_schema(
+            [
+                "tconst",
+                "date",
+                "enjoyment_score",
+                "quality_score",
+                "boolean genre columns",
+            ]
+        )
+    },
 )
 def watched_dates_and_scores():
     dtypes = {
@@ -194,6 +135,7 @@ def watched_dates_and_scores():
     return dg.MaterializeResult(
         value=date_scores,
         metadata={
+            "first 5 rows": helpers.pandas_table_to_dagster_preview(date_scores),
             "total records": dg.MetadataValue.int(len(date_scores)),
             "has date": dg.MetadataValue.int(int(date_count[False])),
             "has no date": dg.MetadataValue.int(int(date_count[True])),
@@ -208,6 +150,11 @@ def watched_dates_and_scores():
 @dg.asset(
     group_name="inputs",
     description="My movie list with info about if they have been watched and where they can be viewed",
+    metadata={
+        "dagster/column_schema": helpers.get_table_schema(
+            ["tconst", "watched", "priority", "netflix", "prime"]
+        )
+    },
 )
 def watch_status():
     dtypes = {
@@ -226,12 +173,9 @@ def watch_status():
     return dg.MaterializeResult(
         value=status,
         metadata={
+            "first 5 rows": helpers.pandas_table_to_dagster_preview(status),
             "total records": dg.MetadataValue.int(total),
             "watched": dg.MetadataValue.int(watched),
             "unwatched": dg.MetadataValue.int(unwatched),
-            "tabular_data": dg.MetadataValue.md(status.head().to_markdown()),
-            "table_schema": create_table_schema_metadata_from_dataframe(
-                status
-            ),  # does not include index...
         },
     )

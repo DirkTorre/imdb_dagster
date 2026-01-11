@@ -8,7 +8,7 @@ from .... import helpers
 
 @dg.asset(
     description="The excel sheet that can be easily filtered and shared",
-    group_name="products",
+    group_name="outputs",
     deps=["my_movie_list", "my_movie_reviews"],
 )
 def watch_list_excel(my_movie_list, my_movie_reviews):
@@ -24,11 +24,9 @@ def watch_list_excel(my_movie_list, my_movie_reviews):
     )
 
 
-
-
 @dg.asset(
     description="HTML visualisations of unwatched movies.",
-    group_name="products",
+    group_name="outputs",
     deps=["my_movie_list"],
 )
 def watch_list_figure_html(my_movie_list):

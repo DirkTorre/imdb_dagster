@@ -8,11 +8,11 @@ from .inputs import (
     title_ratings,
 )
 from src.imdb_dagster.defs.assets import constants
-
+from .... import helpers
 
 
 @dg.asset(
-    description="all the unique indices in the status files",
+    description="list of all the unique indices in the status files",
     group_name="intermediates",
     deps=["watched_dates_and_scores", "watch_status"],
 )
@@ -24,6 +24,7 @@ def indices(
     return dg.MaterializeResult(
         value=needed_indices,
         metadata={
+            "first 5 items": dg.MetadataValue.text(str(str(needed_indices[:5]))),
             "total records": dg.MetadataValue.int(len(needed_indices)),
         },
     )
@@ -33,6 +34,18 @@ def indices(
     description="the needed rows from title_basics",
     group_name="intermediates",
     deps=["title_basics", "indices"],
+    metadata={
+        "dagster/column_schema": helpers.get_table_schema(
+            [
+                "tconst",
+                "primaryTitle",
+                "originalTitle",
+                "startYear",
+                "runtimeMinutes",
+                "boolean genre columns",
+            ]
+        )
+    },
 )
 def needed_title_basics(title_basics=title_basics, indices=indices):
     # Get missing indices
@@ -53,6 +66,9 @@ def needed_title_basics(title_basics=title_basics, indices=indices):
     return dg.MaterializeResult(
         value=title_basics_crosstab_genre,
         metadata={
+            "first 5 rows": helpers.pandas_table_to_dagster_preview(
+                title_basics_crosstab_genre
+            ),
             "total records": dg.MetadataValue.int(title_basics_crosstab_genre.shape[0]),
             "not_found": dg.MetadataValue.text(str(not_in_title_basics)),
         },
@@ -63,6 +79,11 @@ def needed_title_basics(title_basics=title_basics, indices=indices):
     description="the needed rows from title_ratings",
     group_name="intermediates",
     deps=["title_ratings", "indices"],
+    metadata={
+        "dagster/column_schema": helpers.get_table_schema(
+            ["tconst", "averageRating", "numVotes"]
+        )
+    },
 )
 def needed_title_ratings(title_ratings=title_ratings, indices=indices):
     # Get missing indices
@@ -76,6 +97,9 @@ def needed_title_ratings(title_ratings=title_ratings, indices=indices):
     return dg.MaterializeResult(
         value=needed_title_ratings,
         metadata={
+            "first 5 rows": helpers.pandas_table_to_dagster_preview(
+                needed_title_ratings
+            ),
             "total records": dg.MetadataValue.int(needed_title_ratings.shape[0]),
             "not_found": dg.MetadataValue.text(str(not_in_title_ratings)),
         },
@@ -86,6 +110,21 @@ def needed_title_ratings(title_ratings=title_ratings, indices=indices):
     description="The movie list with the watch status enriched with IMDb data",
     group_name="intermediates",
     deps=["watch_status", "needed_title_basics", "needed_title_ratings"],
+    metadata={
+        "dagster/column_schema": helpers.get_table_schema(
+            [
+                "tconst",
+                "watched",
+                "priority",
+                "netflix",
+                "prime",
+                "originalTitle",
+                "startYear",
+                "runtimeMinutes",
+                "boolean genre columns",
+            ]
+        )
+    },
 )
 def my_movie_list(
     watch_status,
@@ -104,6 +143,7 @@ def my_movie_list(
     return dg.MaterializeResult(
         value=movie_list,
         metadata={
+            "first 5 rows": helpers.pandas_table_to_dagster_preview(movie_list),
             "total records": dg.MetadataValue.int(movie_list.shape[0]),
             "not_found": dg.MetadataValue.text(str(not_found)),
         },
@@ -114,6 +154,19 @@ def my_movie_list(
     description="My movie reviews enriched with IMDb data",
     group_name="intermediates",
     deps=["watched_dates_and_scores", "needed_title_basics", "needed_title_ratings"],
+    metadata={
+        "dagster/column_schema": helpers.get_table_schema(
+            [
+                "tconst",
+                "date",
+                "enjoyment_score",
+                "quality_score",
+                "primaryTitle",
+                "originalTitle",
+                "startYear",
+            ]
+        )
+    },
 )
 def my_movie_reviews(
     watched_dates_and_scores,
@@ -127,6 +180,7 @@ def my_movie_reviews(
     return dg.MaterializeResult(
         value=movie_reviews,
         metadata={
+            "first 5 rows": helpers.pandas_table_to_dagster_preview(movie_reviews),
             "total records": dg.MetadataValue.int(movie_reviews.shape[0]),
             "not_found": dg.MetadataValue.text(str(not_found)),
         },

@@ -6,8 +6,8 @@
 
 # seeparte downloading files from laoding files??
 
-from .data_assets import inputs 
-# from .data_assets import products
+from .data_assets import inputs
+# from .data_assets import outputs
 
 import dagster as dg
 
@@ -32,14 +32,12 @@ import dagster as dg
 #     )
 
 watched_dates_and_scores_job = dg.define_asset_job(
-    name="watched_dates_and_scores_job",
-    selection=[inputs.watched_dates_and_scores]
+    name="watched_dates_and_scores_job", selection=[inputs.watched_dates_and_scores]
 )
 
 
 watch_status_job = dg.define_asset_job(
-    name="watch_status_job",
-    selection=[inputs.watch_status]
+    name="watch_status_job", selection=[inputs.watch_status]
 )
 
 # # materialized assets that are already synced
