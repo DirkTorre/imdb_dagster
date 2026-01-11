@@ -7,6 +7,8 @@ from .inputs import (
     title_basics,
     title_ratings,
 )
+from src.imdb_dagster.defs.assets import constants
+
 
 
 @dg.asset(

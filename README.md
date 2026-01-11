@@ -63,8 +63,31 @@ To learn more about this template and Dagster in general:
 - [Dagster Slack Community](https://dagster.io/slack)
 
 ## Todo
+
+look at the on eager thing: https://docs.dagster.io/guides/automate/declarative-automation
+
+constante unsynced_condition werkt niet meer (documentatie lezen), (en mischien is de job voor excel niet meer nodig)
+
+
+"Unsynced" detection: Assets are considered unsynced when 2 :
+
+The code version of the asset has changed
+The dependencies of the asset have changed
+The data version of a parent asset has changed due to a new materialization
+
+
+3. create job for generating the excel file (elke 5 minuten elke niet gesyncde upstream assets ) << later
+
+6. add the visualisation
+7. clean up code (remove redundancy)
+8. document code
+9. finish course
+
+## Done
+ 
+elke 5 minute kijkt de sensor of de file op schijf meer dan 24 uur oud is, zo ja dan wordt de asset voor de ruwe imdb files gerund.
+de assets voor het downloaden checkt of de files al op de schijf staan en of deze ouder zijn dan 24 uur, zo ja dan worden de files gedownload.
+
+
 - automatic download of files every day + create freshness check : https://docs.dagster.io/guides/test/data-freshness-testing + https://docs.dagster.io/guides/observe/asset-freshness-policies
-- automatic materialization of needed assets when date_score.csv or status.csv changes
-- add the visualisation
-- clean up code (remove redundancy)
-- document code
+- 5. fix the problems with the checks <<<<< see TODO
