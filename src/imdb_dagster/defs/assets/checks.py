@@ -1,18 +1,21 @@
-# contains circular dependency
-
 import dagster as dg
 import pandas as pd
-import os
-import time
-from datetime import datetime
 
 from src.imdb_dagster.defs.assets import constants
-from .data_assets import raw_inputs, inputs
-from .data_assets.inputs import title_basics, watched_dates_and_scores, watch_status
+from .data_assets.inputs import (
+    title_basics,
+    watched_dates_and_scores,
+    watch_status,
+)
 
 
-@dg.asset_check(asset=inputs.watch_status, blocking=True)
+# -------------------------------------------------------------------
+# Check: watch_status has no duplicate tconst
+# -------------------------------------------------------------------
+@dg.asset_check(asset=watch_status, blocking=True)
 def watch_status_has_no_duplicate_tconst():
+    """Ensure the watch_status CSV contains no duplicate tconst values."""
+
     dtypes = {
         "tconst": pd.StringDtype(),
         "watched": pd.BooleanDtype(),
@@ -21,86 +24,97 @@ def watch_status_has_no_duplicate_tconst():
         "prime": pd.BooleanDtype(),
     }
 
-    status = pd.read_csv(constants.STATUS_FILE_PATH, dtype=dtypes, index_col="tconst")
+    df = pd.read_csv(
+        constants.STATUS_FILE_PATH,
+        dtype=dtypes,
+        index_col="tconst",
+    )
 
-    duplicated = status.index.duplicated()
-    dups = []
-    if duplicated.any():
-        dups = list(status[duplicated].index)
+    duplicated_mask = df.index.duplicated()
+    duplicates = df.index[duplicated_mask].tolist()
 
     return dg.AssetCheckResult(
-        passed=len(dups) == 0,
+        passed=len(duplicates) == 0,
+        metadata={"duplicates": duplicates},
+    )
+
+
+# -------------------------------------------------------------------
+# Factory: generic tconst existence check
+# -------------------------------------------------------------------
+def create_tconst_check(asset_name: str):
+    """
+    Creates a check ensuring that all tconst values in `asset`
+    exist in title_basics.
+    """
+
+    @dg.asset_check(
+        asset=asset_name,
+        name=f"{asset_name}_tconst_exists_in_title_basics",
+        additional_ins={"title_basics": dg.AssetIn("title_basics")},
+        blocking=True,
+    )
+    def _check(context, asset_value, title_basics):
+        # asset_value is the value of the asset being checked (comes from the decorator "asset")
+        # title_basics comes from additional_ins
+        # NOTE: the asset to be checked must always come first
+        missing = asset_value.index.difference(title_basics.index).tolist()
+        passed = len(missing) == 0
+
+        return dg.AssetCheckResult(
+            passed=passed,
+            metadata={
+                "missing_tconst": missing,
+            },
+        )
+
+    return _check
+
+
+# Instantiate checks
+watch_status_check = create_tconst_check("watch_status")
+watched_dates_check = create_tconst_check("watched_dates_and_scores")
+
+
+# -------------------------------------------------------------------
+# Check: watched_dates_and_scores tconst must exist in watch_status
+# -------------------------------------------------------------------
+@dg.asset_check(
+    asset=watch_status,
+    name="watched_dates_and_scores_tconst_in_watch_status",
+    additional_ins={"watched_dates_and_scores": dg.AssetIn("watched_dates_and_scores")},
+    blocking=True,
+)
+def tconsts_in_watch_status(context, watch_status, watched_dates_and_scores):
+    missing = watched_dates_and_scores.index.difference(watch_status.index).tolist()
+    passed = len(missing) == 0
+
+    return dg.AssetCheckResult(
+        passed=passed,
         metadata={
-            "duplicate id's": dups,
+            "missing_tconst": missing,
+            "message": (
+                "All tconst values in watched_dates_and_scores exist in watch_status"
+                if passed
+                else f"Missing tconst values: {missing}"
+            ),
         },
     )
 
 
-# code work's even when title_basics isn't loaded yet when materializing date_scores or status
-def create_tconst_check(asset_name: str):
-    @dg.asset_check(
-        asset=asset_name,
-        name=f"{asset_name}_tconst_exists",
-        additional_ins={"title_basics": dg.AssetIn("title_basics")},
-        blocking=True,
-    )
-    def tconst_exists(context, asset_value, title_basics):
-        # asset_value is the value of the asset being checked (comes from the decorator "asset")
-        # title_basics comes from additional_ins
-        # NOTE: the asset to be checked must always come first
-
-        not_exists = asset_value.index.difference(title_basics.index).to_list()
-        all_exist = not bool(not_exists)
-
-        if all_exist:
-            passed = True
-            message = f"all tconst's were found in title_basics for {asset_name}"
-        else:
-            passed = False
-            message = f"some tconst's were not found in title_basics for {asset_name}: \
-                {' '.join(not_exists)}"
-
-        return dg.AssetCheckResult(
-            passed=passed,
-            metadata={"message": message},
-        )
-
-    return tconst_exists
-
-
-# Create the checks - only pass the asset name
-watch_status_check = create_tconst_check("watch_status")
-watched_date_check = create_tconst_check("watched_dates_and_scores")
-
-
+# -------------------------------------------------------------------
+# Check: watched_dates_and_scores entries must be marked watched=True in watch_status
+# -------------------------------------------------------------------
 @dg.asset_check(
     asset=watch_status,
-    name="tconsts_from_watched_dates_and_scores_are_in_watch_status",
+    name="watched_dates_and_scores_marked_as_watched",
     additional_ins={"watched_dates_and_scores": dg.AssetIn("watched_dates_and_scores")},
     blocking=True,
 )
-def tconst_exists(context, watch_status, watched_dates_and_scores):
-    not_in_watch_status = watched_dates_and_scores.index.difference(
-        watch_status.index
-    ).to_list()
-    passed_value = not not_in_watch_status  # true when empty
-
-    message = ""
-    if passed_value:
-        message = "all tconst's were found in watch_status"
-    else:
-        message = f"not found in watch_status, please add: {not_in_watch_status}"
-
-    return dg.AssetCheckResult(passed=passed_value, metadata={"message": message})
-
-
-@dg.asset_check(
-    asset=watch_status,
-    name=f"watched_dates_and_scores_marked_as_watched_in_watch_status",
-    additional_ins={"watched_dates_and_scores": dg.AssetIn("watched_dates_and_scores")},
-    blocking=True,
-)
-def watch_status_updated_with_wdas(context, watch_status, watched_dates_and_scores):
+def watched_dates_marked_as_watched(context, watch_status, watched_dates_and_scores):
+    """
+    Ensures that any movie with a watched date is marked watched=True in watch_status.
+    """
     watched_dates_and_scores["watched"] = True
 
     # Align only overlapping indices

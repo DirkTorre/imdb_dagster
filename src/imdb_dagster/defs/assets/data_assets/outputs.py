@@ -2,12 +2,12 @@ import dagster as dg
 import pandas as pd
 
 from src.imdb_dagster.defs.assets import constants
-from .transformation import my_movie_list, my_movie_reviews
+from .intermediates import my_movie_list, my_movie_reviews
 from .... import helpers
 
 
 @dg.asset(
-    description="The excel sheet that can be easily filtered and shared",
+    description="Sharabele excel sheet.",
     group_name="outputs",
     deps=["my_movie_list", "my_movie_reviews"],
 )
@@ -20,7 +20,7 @@ def watch_list_excel(my_movie_list, my_movie_reviews):
 
     return dg.MaterializeResult(
         # value="",
-        metadata={"file path": dg.MetadataValue.path(constants.PRODUCT_EXCEL_FILE_PATH)}
+        metadata={"file_path": dg.MetadataValue.path(constants.PRODUCT_EXCEL_FILE_PATH)}
     )
 
 
@@ -34,5 +34,5 @@ def watch_list_figure_html(my_movie_list):
     helpers.create_movie_recommendations(my_movie_list, html_path)
 
     return dg.MaterializeResult(
-        metadata={"file path": dg.MetadataValue.path(html_path)}
+        metadata={"file_path": dg.MetadataValue.path(html_path)}
     )

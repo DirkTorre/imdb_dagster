@@ -7,6 +7,8 @@ import dagster as dg
 import os
 import time
 from datetime import datetime
+from pathlib import Path
+from typing import Optional
 
 from src.imdb_dagster.defs.assets import constants
 from . import jobs
@@ -20,7 +22,11 @@ def file_download_sensor(
     stale_after_hours: int = 24,
     check_interval_seconds: int = 3600,
 ) -> dg.SensorDefinition:
-    """Factory to create file freshness sensors for different assets."""
+    """Factory to create file freshness sensors for different assets.
+
+    Triggers a run when the file is missing or older than stale_after_hours.
+    """
+    path = Path(file_path)
 
     @dg.sensor(
         name=sensor_name,
@@ -30,26 +36,31 @@ def file_download_sensor(
     )
     def _file_download_sensor(context: dg.SensorEvaluationContext):
         """Check if the file needs to be refreshed."""
+        try:
+            if not path.exists():
+                context.log.info(f"File {path} does not exist -> triggering download")
+                return dg.RunRequest(
+                    run_key=f"{sensor_name}_missing_{datetime.now().isoformat()}"
+                )
 
-        if not os.path.exists(file_path):
-            context.log.info(f"File {file_path} doesn't exist, triggering download")
-            return dg.RunRequest(
-                run_key=f"{sensor_name}_missing_{datetime.now().isoformat()}"
-            )
+            mod_time = path.stat().st_mtime
+            current_time = time.time()
+            hours_old = (current_time - mod_time) / 3600
 
-        mod_time = os.path.getmtime(file_path)
-        current_time = time.time()
-        hours_old = (current_time - mod_time) / 3600
+            if hours_old > stale_after_hours:
+                context.log.info(
+                    f"File {path} is {hours_old:.1f} hours old (> {stale_after_hours}h) -> triggering refresh"
+                )
+                return dg.RunRequest(
+                    run_key=f"{sensor_name}_stale_{datetime.now().isoformat()}"
+                )
 
-        if hours_old > stale_after_hours:
-            context.log.info(
-                f"File {file_path} is {hours_old:.1f} hours old, triggering refresh"
-            )
-            return dg.RunRequest(
-                run_key=f"{sensor_name}_stale_{datetime.now().isoformat()}"
-            )
-        else:
+            context.log.debug(f"File {path} is fresh ({hours_old:.1f} hours old)")
             return dg.SkipReason(f"File is only {hours_old:.1f} hours old, still fresh")
+        except Exception as exc:
+            context.log.error(f"Error while evaluating sensor {sensor_name}: {exc}")
+            # In case of unexpected error, skip and surface message
+            return dg.SkipReason(f"Sensor error: {exc}")
 
     return _file_download_sensor
 
@@ -73,8 +84,11 @@ title_ratings_sensor = file_download_sensor(
 
 
 def create_file_change_sensor(
-    sensor_name: str, job, file_path: str, minimum_interval_seconds: int = 30
-):
+    sensor_name: str,
+    job: dg.JobDefinition,
+    file_path: str,
+    minimum_interval_seconds: int = 30,
+) -> dg.SensorDefinition:
     """
     Factory function to create file change sensors.
 
@@ -85,8 +99,9 @@ def create_file_change_sensor(
         minimum_interval_seconds: Minimum seconds between sensor evaluations
 
     Returns:
-        A configured sensor definition
+        A configured sensor definition that returns either a RunRequest or SkipReason.
     """
+    path = Path(file_path)
 
     @dg.sensor(
         name=sensor_name,
@@ -94,22 +109,47 @@ def create_file_change_sensor(
         minimum_interval_seconds=minimum_interval_seconds,
         default_status=dg.DefaultSensorStatus.RUNNING,
     )
-    def file_change_sensor(context):
-        # Get the last modification time from cursor (0 if first run)
-        last_mtime = float(context.cursor) if context.cursor else 0
+    def file_change_sensor(context: dg.SensorEvaluationContext):
+        try:
+            last_mtime = float(context.cursor) if context.cursor else 0.0
 
-        if os.path.exists(file_path):
-            # Get current file modification time
-            current_mtime = os.stat(file_path).st_mtime
+            if path.exists():
+                current_mtime = path.stat().st_mtime
 
-            # Check if file was modified since last check
-            if current_mtime > last_mtime:
-                # File has changed, trigger a run
-                run_key = f"file_change_{current_mtime}"
-                yield dg.RunRequest(run_key=run_key)
+                if current_mtime > last_mtime:
+                    run_key = f"{sensor_name}_file_change_{int(current_mtime)}"
+                    context.log.info(
+                        f"Detected change in {path} -> triggering job {job.name}"
+                    )
+                    context.update_cursor(str(current_mtime))
+                    return dg.RunRequest(run_key=run_key)
 
-                # Update cursor with new modification time
-                context.update_cursor(str(current_mtime))
+                context.log.debug(
+                    f"No change detected for {path} (mtime {current_mtime})"
+                )
+                return dg.SkipReason("No change detected")
+
+            # File does not exist
+            if last_mtime != 0.0:
+                # File existed previously but is now missing -> trigger job to handle removal
+                context.log.info(
+                    f"File {path} was removed since last check -> triggering job {job.name}"
+                )
+                context.update_cursor("0")
+                return dg.RunRequest(
+                    run_key=f"{sensor_name}_missing_{datetime.now().isoformat()}"
+                )
+
+            context.log.debug(
+                f"File {path} missing and never seen before; nothing to do"
+            )
+            return dg.SkipReason("File missing and no previous record")
+
+        except Exception as exc:
+            context.log.error(
+                f"Error evaluating file change sensor {sensor_name}: {exc}"
+            )
+            return dg.SkipReason(f"Sensor error: {exc}")
 
     return file_change_sensor
 

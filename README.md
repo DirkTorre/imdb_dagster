@@ -77,7 +77,9 @@ The data version of a parent asset has changed due to a new materialization
 
 
 
-2. clean up code (remove redundancy)
+
+- the output files don't say unsynced when some things upstream are unsynced.......
+
 3. create job for generating the excel file (elke 5 minuten elke niet gesyncde upstream assets ) << later
 4. document code
 5. finish course
@@ -87,7 +89,7 @@ The data version of a parent asset has changed due to a new materialization
 elke 5 minute kijkt de sensor of de file op schijf meer dan 24 uur oud is, zo ja dan wordt de asset voor de ruwe imdb files gerund.
 de assets voor het downloaden checkt of de files al op de schijf staan en of deze ouder zijn dan 24 uur, zo ja dan worden de files gedownload.
 
-
+- clean up code (remove redundancy) (verder met helpers. de rest heb ik al gedaan)
 - automatic download of files every day + create freshness check : https://docs.dagster.io/guides/test/data-freshness-testing + https://docs.dagster.io/guides/observe/asset-freshness-policies
 - fix the problems with the checks
 - add the visualisation

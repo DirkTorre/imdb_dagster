@@ -5,7 +5,6 @@ from bokeh.io import output_file, save
 import pandas as pd
 import dagster as dg
 from dagster import MetadataValue, TableRecord
-from typing import List
 
 
 def create_movie_recommendations(final_status, filepath):
@@ -149,90 +148,71 @@ def create_movie_recommendations(final_status, filepath):
     save(full_layout)
 
 
-def pandas_table_to_dagster_preview(table):
-    records = []
-
-    for row in table.reset_index().head().to_dict(orient="records"):
-        cleaned_row = {
-            key: (
-                value
-                if isinstance(value, (str, int, float, bool, type(None)))
-                else str(value)
-            )
-            for key, value in row.items()
-        }
-        records.append(dg.TableRecord(cleaned_row))
-
-    return MetadataValue.table(records=records)
-
-
 ALL_VALUES = {
-    "tconst": dg.TableColumn(
-        "tconst", "string", "alphanumeric unique identifier of the title"
-    ),
-    "averageRating": dg.TableColumn(
-        "averageRating", "float", "weighted average of all the individual user ratings"
-    ),
-    "numVotes": dg.TableColumn(
-        "numVotes", "int", "number of votes the title has received"
-    ),
-    "titleType": dg.TableColumn(
-        "titleType", "string", "type/format of the title (movie, short, tvseries, etc)"
-    ),
-    "primaryTitle": dg.TableColumn(
-        "primaryTitle", "string", "popular title used on promotional materials"
-    ),
-    "originalTitle": dg.TableColumn(
-        "originalTitle", "string", "original title in the original language"
-    ),
-    "isAdult": dg.TableColumn(
-        "isAdult", "bool", "0 = non‑adult title, 1 = adult title"
-    ),
-    "startYear": dg.TableColumn(
-        "startYear", "int", "release year; for TV series, the start year"
-    ),
-    "endYear": dg.TableColumn(
-        "endYear", "int", "TV series end year; '\\N' for other title types"
-    ),
-    "runtimeMinutes": dg.TableColumn(
-        "runtimeMinutes", "int", "primary runtime of the title in minutes"
-    ),
-    "genres": dg.TableColumn(
-        "genres", "string[]", "up to three genres associated with the title"
-    ),
-    "watched": dg.TableColumn("watched", "bool", "whether the movie has been watched"),
-    "priority": dg.TableColumn("priority", "bool", "whether the movie has priority"),
-    "netflix": dg.TableColumn(
-        "netflix",
-        "bool",
-        "whether the movie is on Netflix (handmade value, no value means unknown)",
-    ),
-    "prime": dg.TableColumn(
-        "prime",
-        "bool",
-        "whether the movie is on Amazon Prime (handmade value, no value means unknown)",
-    ),
-    "date": dg.TableColumn("date", "date", "date the movie was watched"),
-    "enjoyment_score": dg.TableColumn(
-        "enjoyment_score",
-        "float",
-        "enjoyment score given after watching. 0=no enjoyment; 1=mweh; 2=fun; 3=good/cool; 4=great",
-    ),
-    "quality_score": dg.TableColumn(
-        "quality_score",
-        "float",
-        "quality score given after watching. 0=bad, don't watch; 1=bad but interesting; 2=good engough; 3=good;4=great",
-    ),
+    "tconst": "alphanumeric unique identifier of the title",
+    "averageRating": "weighted average of all the individual user ratings",
+    "numVotes": "number of votes the title has received",
+    "titleType": "type/format of the title (movie, short, tvseries, etc)",
+    "primaryTitle": "popular title used on promotional materials",
+    "originalTitle": "original title in the original language",
+    "isAdult": "0 = non‑adult title, 1 = adult title",
+    "startYear": "release year; for TV series, the start year",
+    "endYear": "TV series end year; '\\N' for other title types",
+    "runtimeMinutes": "primary runtime of the title in minutes",
+    "genres": "up to three genres associated with the title",
+    "watched": "whether the movie has been watched",
+    "priority": "whether the movie has priority",
+    "netflix": "whether the movie is on Netflix (handmade value, no value means unknown)",
+    "prime": "whether the movie is on Amazon Prime (handmade value, no value means unknown)",
+    "date": "date the movie was watched",
+    "enjoyment_score": "enjoyment score given after watching. 0=no enjoyment; 1=mweh; 2=fun; 3=good/cool; 4=great",
+    "quality_score": "quality score given after watching. 0=bad, don't watch; 1=bad but interesting; 2=good engough; 3=good;4=great",
 }
 
 
-def get_table_schema(keys: List[str]):
+def get_table_schema(df: pd.DataFrame, max_preview: int = 10) -> MetadataValue:
+    """
+    Convert a DataFrame into a Dagster MetadataValue.table with schema and preview records.
+
+    Args:
+        df: DataFrame to convert. Index will be reset so preview shows columns as fields.
+        max_preview: number of preview rows to include.
+
+    Returns:
+        Dagster MetadataValue.table instance describing the schema and sample records.
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("df must be a pandas.DataFrame")
+
+    preview_df = df.reset_index().head(max_preview).copy()
+
     columns = []
-    for key in keys:
+    for col in preview_df.columns:
+        dtype_str = str(preview_df.dtypes[col])
+        description = ALL_VALUES.get(col, "unknown")
+        # dagster.TableColumn takes (name, type, description) historically
         try:
-            columns.append(ALL_VALUES[key])
-        except KeyError:
-            columns.append(
-                dg.TableColumn(key, "unknow", "unkown datatype"),
-            )
-    return dg.TableSchema(columns=columns)
+            columns.append(dg.TableColumn(col, dtype_str, description))
+        except TypeError:
+            # Fallback: construct via kwargs for different dagster versions
+            columns.append(dg.TableColumn(name=col, type=dtype_str, description=description))
+
+    records = []
+    # Only include JSON serializable primitives; fallback to string
+    for row in preview_df.to_dict(orient="records"):
+        cleaned = {
+            key: (value if isinstance(value, (str, int, float, bool, type(None))) else str(value))
+            for key, value in row.items()
+        }
+        try:
+            records.append(dg.TableRecord(cleaned))
+        except Exception:
+            # Fallback: use plain dict if TableRecord is unavailable/strict
+            records.append(cleaned)
+
+    try:
+        schema = dg.TableSchema(columns=columns)
+        return MetadataValue.table(records=records, schema=schema)
+    except Exception:
+        # In case dagster API differs, return minimal table metadata
+        return MetadataValue.table(records=records)
