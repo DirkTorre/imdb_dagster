@@ -16,3 +16,10 @@ PRODUCT_FIGURE_FILE_PATH = "data/outputs/watch_list.html"
 #     & dg.AutomationCondition.cron_tick_passed(cron_schedule="*/2 * * * *") # only every 2 minutes
 # )
 # automation_condition=constants.unsynced_condition # bij assets in decorator
+
+# Schedule to run every 10 minutes
+unsynced_condition = (
+    dg.AutomationCondition.any_deps_updated()  # Any upstream has updated
+    | dg.AutomationCondition.code_version_changed()  # Code version changed
+    | dg.AutomationCondition.missing()  # Asset never materialized
+)

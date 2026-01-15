@@ -8,12 +8,14 @@ from .inputs import (
     title_ratings,
 )
 from .... import helpers
+from .. import constants
 
 
 @dg.asset(
     description="Union of all unique indices from watch_status and watched_dates_and_scores",
     group_name="intermediates",
     deps=["watched_dates_and_scores", "watch_status"],
+    automation_condition=dg.AutomationCondition.eager()
 )
 def indices(
     watched_dates_and_scores=watched_dates_and_scores, watch_status=watch_status
@@ -33,6 +35,7 @@ def indices(
     description="Subset of title_basics containing only needed indices",
     group_name="intermediates",
     deps=["title_basics", "indices"],
+    automation_condition=dg.AutomationCondition.eager()
 )
 def needed_title_basics(title_basics=title_basics, indices=indices):
     missing = indices.difference(title_basics.index)
@@ -66,6 +69,7 @@ def needed_title_basics(title_basics=title_basics, indices=indices):
     description="Subset of title_ratings containing only needed indices",
     group_name="intermediates",
     deps=["title_ratings", "indices"],
+    automation_condition=dg.AutomationCondition.eager()
 )
 def needed_title_ratings(title_ratings=title_ratings, indices=indices):
     missing = indices.difference(title_ratings.index)
@@ -89,6 +93,7 @@ def needed_title_ratings(title_ratings=title_ratings, indices=indices):
     description="Watch status enriched with IMDb basics and ratings",
     group_name="intermediates",
     deps=["watch_status", "needed_title_basics", "needed_title_ratings"],
+    automation_condition=dg.AutomationCondition.eager()
 )
 def my_movie_list(
     watch_status,
@@ -121,6 +126,7 @@ def my_movie_list(
     description="My movie reviews enriched with IMDb data",
     group_name="intermediates",
     deps=["watched_dates_and_scores", "needed_title_basics", "needed_title_ratings"],
+    automation_condition=dg.AutomationCondition.eager()
 )
 def my_movie_reviews(
     watched_dates_and_scores,

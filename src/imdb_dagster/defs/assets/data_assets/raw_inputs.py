@@ -16,7 +16,12 @@ def create_download_asset(
 ) -> dg.AssetsDefinition:
     """Factory to create file download assets with staleness checking."""
 
-    @dg.asset(name=name, group_name="raw_inputs", description=description)
+    @dg.asset(
+        name=name,
+        group_name="raw_inputs",
+        description=description,
+        automation_condition=dg.AutomationCondition.on_cron("* * * * *") & dg.AutomationCondition.on_missing(), # makes sure it checks every minute if asset exists.
+    )
     def _asset(context: dg.AssetExecutionContext):
         """Download the file only if it's stale or missing."""
 

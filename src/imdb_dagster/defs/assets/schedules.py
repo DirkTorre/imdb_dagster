@@ -1,9 +1,9 @@
 import dagster as dg
-
 from . import jobs
 
-# watch_list_excel_schedule = dg.ScheduleDefinition(
-#     name="watch_list_excel_schedule",
-#     job=jobs.watch_list_excel_job,
-#     cron_schedule="*/5 * * * *",  # Every 5 minutes
+# hoeft geen schedule the hebben
+# output_job_schedule = dg.ScheduleDefinition(
+#     name="output_job_schedule",
+#     job=output_job,
+#     cron_schedule="*/15 * * * *",  # Every 15 minutes
 # )

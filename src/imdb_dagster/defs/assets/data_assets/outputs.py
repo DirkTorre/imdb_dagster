@@ -10,6 +10,7 @@ from .... import helpers
     description="Sharabele excel sheet.",
     group_name="outputs",
     deps=["my_movie_list", "my_movie_reviews"],
+    automation_condition=dg.AutomationCondition.eager(),
 )
 def watch_list_excel(my_movie_list, my_movie_reviews):
     with pd.ExcelWriter(
@@ -28,6 +29,7 @@ def watch_list_excel(my_movie_list, my_movie_reviews):
     description="HTML visualisations of unwatched movies.",
     group_name="outputs",
     deps=["my_movie_list"],
+    automation_condition=dg.AutomationCondition.eager(),
 )
 def watch_list_figure_html(my_movie_list):
     html_path = constants.PRODUCT_FIGURE_FILE_PATH

@@ -12,6 +12,7 @@ from dagster import MetadataValue, TableRecord, TableSchema, TableColumn
     deps=[raw_inputs.title_basics],
     group_name="inputs",
     description="Processed IMDB title_basics DataFrame",
+    automation_condition=dg.AutomationCondition.eager()
 )
 def title_basics(context: dg.AssetExecutionContext):
     cols_to_use = [
@@ -52,6 +53,7 @@ def title_basics(context: dg.AssetExecutionContext):
     deps=[raw_inputs.title_ratings],
     group_name="inputs",
     description="Processed IMDB title_ratings DataFrame",
+    automation_condition=dg.AutomationCondition.eager()
 )
 def title_ratings(context: dg.AssetExecutionContext):
     dtypes = {"averageRating": pd.Float32Dtype(), "numVotes": pd.Int32Dtype()}
@@ -82,6 +84,8 @@ def title_ratings(context: dg.AssetExecutionContext):
 @dg.asset(
     group_name="inputs",
     description="The dates movies have been watched and scores I gave them",
+    deps=[title_basics],
+    automation_condition=dg.AutomationCondition.eager(),
 )
 def watched_dates_and_scores():
     dtypes = {
@@ -124,6 +128,8 @@ def watched_dates_and_scores():
 @dg.asset(
     group_name="inputs",
     description="My movie list with info about if they have been watched and where they can be viewed",
+    deps=[title_basics],
+    automation_condition=dg.AutomationCondition.eager(),
 )
 def watch_status():
     dtypes = {

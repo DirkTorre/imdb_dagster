@@ -87,7 +87,7 @@ def create_file_change_sensor(
     sensor_name: str,
     job: dg.JobDefinition,
     file_path: str,
-    minimum_interval_seconds: int = 30,
+    minimum_interval_seconds: int = 60*5,
 ) -> dg.SensorDefinition:
     """
     Factory function to create file change sensors.

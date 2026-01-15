@@ -64,28 +64,14 @@ To learn more about this template and Dagster in general:
 
 ## Todo
 
-look at the on eager thing: https://docs.dagster.io/guides/automate/declarative-automation
-
-constante unsynced_condition werkt niet meer (documentatie lezen), (en mischien is de job voor excel niet meer nodig)
-
-
-"Unsynced" detection: Assets are considered unsynced when 2 :
-
-The code version of the asset has changed
-The dependencies of the asset have changed
-The data version of a parent asset has changed due to a new materialization
-
-
-
-
-- the output files don't say unsynced when some things upstream are unsynced.......
-
-3. create job for generating the excel file (elke 5 minuten elke niet gesyncde upstream assets ) << later
-4. document code
-5. finish course
+1. clean the code (remove dead code (are the jobs and schedules still needed?))
+2. document code (add type annotation)
+3. finish course
 
 ## Done
- 
+
+- alle files worden automatisch bijgewerkt als er een input veranderd.
+- all inputs get automaticaly loaded
 elke 5 minute kijkt de sensor of de file op schijf meer dan 24 uur oud is, zo ja dan wordt de asset voor de ruwe imdb files gerund.
 de assets voor het downloaden checkt of de files al op de schijf staan en of deze ouder zijn dan 24 uur, zo ja dan worden de files gedownload.
 
