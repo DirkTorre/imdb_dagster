@@ -37,6 +37,8 @@ I you use `automation_condition=dg.AutomationCondition.eager()`, materializing s
 
 But the stupid thing is that the very first asset doesn't automaticaly materialize when you use `.onmissing()`. Instead you must force the asset to check every x time interval: `automation_condition=dg.AutomationCondition.on_cron("* * * * *") & dg.AutomationCondition.on_missing()`.
 
+I think it doesn't work either, just use the logic i made with file_change_sensor_watch_status().
+
 "Unsynced" detection: Assets are considered unsynced when:
 - The code version of the asset has changed
 - The dependencies of the asset have changed

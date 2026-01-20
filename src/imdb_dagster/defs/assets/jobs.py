@@ -14,8 +14,6 @@ from .data_assets import inputs, outputs
 # Define a job that includes the output assets
 
 
-
-
 # deze job moet runnen als de download sensors af gaan.
 title_basics_job = dg.define_asset_job(
     name="title_basics_job",
@@ -26,9 +24,6 @@ title_ratings_job = dg.define_asset_job(
     name="title_ratings_job",
     selection=["*title_ratings"]
 )
-
-
-
 
 
 watched_dates_and_scores_job = dg.define_asset_job(

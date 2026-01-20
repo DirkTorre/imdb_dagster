@@ -6,6 +6,7 @@ DATES_AND_SCORES_FILE_PATH = "data/inputs/handmade_files/date_scores.csv"
 STATUS_FILE_PATH = "data/inputs/handmade_files/status.csv"
 PRODUCT_EXCEL_FILE_PATH = "data/outputs/watch_list.xlsx"
 PRODUCT_FIGURE_FILE_PATH = "data/outputs/watch_list.html"
+file_a = "data/inputs/imdb_files/robots.txt"
 # unsynced_condition = (
 #     (
 #         dg.AutomationCondition.any_deps_updated()  # Any upstream has updated

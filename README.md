@@ -70,13 +70,14 @@ To learn more about this template and Dagster in general:
 
 ## Done
 
-- alle files worden automatisch bijgewerkt als er een input veranderd.
-- all inputs get automaticaly loaded
-elke 5 minute kijkt de sensor of de file op schijf meer dan 24 uur oud is, zo ja dan wordt de asset voor de ruwe imdb files gerund.
-de assets voor het downloaden checkt of de files al op de schijf staan en of deze ouder zijn dan 24 uur, zo ja dan worden de files gedownload.
+- title_basics and title_ratings are loaded automatically 
+- all files are updated automatically when an input changes.
+- all inputs are loaded automatically
+Every 5 minutes, the sensor checks whether the file on disk is more than 24 hours old. If so, the asset for the raw IMDb files is run.
+The assets for downloading check whether the files are already on the disk and whether they are older than 24 hours. If so, the files are downloaded.
 
-- clean up code (remove redundancy) (verder met helpers. de rest heb ik al gedaan)
-- automatic download of files every day + create freshness check : https://docs.dagster.io/guides/test/data-freshness-testing + https://docs.dagster.io/guides/observe/asset-freshness-policies
-- fix the problems with the checks
-- add the visualisation
-- add better dataframe descriptions in assets
+- Clean up code (remove redundancy) (continue with helpers. I have already done the rest)
+- Automatic download of files every day + create freshness check: https://docs.dagster.io/guides/test/data-freshness-testing + https://docs.dagster.io/guides/observe/asset-freshness-policies
+- Fix the problems with the checks
+- Add the visualization
+- Add better dataframe descriptions in assets

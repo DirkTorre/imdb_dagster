@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+from imdb_dagster.defs.assets.data_assets import inputs
 from src.imdb_dagster.defs.assets import constants
 from . import jobs
 from .data_assets import raw_inputs
@@ -166,3 +167,58 @@ file_change_sensor_watched_dates_and_scores = create_file_change_sensor(
     job=jobs.watched_dates_and_scores_job,
     file_path=constants.DATES_AND_SCORES_FILE_PATH,
 )
+
+
+@dg.sensor(
+    name="upstream_sensor_watched_dates_and_scores",
+    job=jobs.title_basics_job,
+)
+def upstream_sensor_watched_dates_and_scores(
+    context: dg.SensorEvaluationContext,
+) -> Optional[dg.RunRequest]:
+    """Sensor that triggers when upstream assets of watched_dates_and_scores change."""
+    title_basics_raw_materialization = context.instance.get_latest_materialization_event(
+        dg.AssetKey("title_basics_raw")
+    )
+    title_basics_materialization = context.instance.get_latest_materialization_event(
+        dg.AssetKey("title_basics")
+    )
+
+    if not title_basics_raw_materialization or not title_basics_materialization:
+        context.log.info(
+        "Upstream asset change detected for watched_dates_and_scores -> triggering jobs"
+    )
+        return dg.RunRequest(
+            run_key=f"{context.cursor}_upstream_refresh",
+            run_config={}
+        )
+    else:
+        return dg.SkipReason("Upstream assets title_basics and title_basics_raw are already materialized")
+
+
+
+@dg.sensor(
+    name="upstream_sensor_watch_status",
+    job=jobs.title_ratings_job,
+)
+def upstream_sensor_watch_status(
+    context: dg.SensorEvaluationContext,
+) -> Optional[dg.RunRequest]:
+    """Sensor that triggers when upstream assets of watch_status change."""
+    title_ratings_raw_materialization = context.instance.get_latest_materialization_event(
+        dg.AssetKey("title_ratings_raw")
+    )
+    title_ratings_materialization = context.instance.get_latest_materialization_event(
+        dg.AssetKey("title_ratings")
+    )
+
+    if not title_ratings_raw_materialization or not title_ratings_materialization:
+        context.log.info(
+        "Upstream asset change detected for watch_status -> triggering jobs"
+    )
+        return dg.RunRequest(
+            run_key=f"{context.cursor}_upstream_refresh",
+            run_config={}
+        )
+    else:
+        return dg.SkipReason("Upstream assets title_ratings and title_ratings_raw are already materialized")
