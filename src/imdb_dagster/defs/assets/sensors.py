@@ -1,10 +1,4 @@
-# check if watched_dates_and_scores file changed, if so execute job (create excel, create visualisation)
-# check if watch_status file changed, if so execute job (create excel, create visualisation)
-# check if title_basics excists, if not => download job
-# check if title_ratings excists, if not => download job
-
 import dagster as dg
-import os
 import time
 from datetime import datetime
 from pathlib import Path

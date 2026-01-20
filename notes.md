@@ -43,3 +43,7 @@ I think it doesn't work either, just use the logic i made with file_change_senso
 - The code version of the asset has changed
 - The dependencies of the asset have changed
 - The data version of a parent asset has changed due to a new materialization
+
+## input files
+
+make sure to add too many comma's in status

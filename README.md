@@ -64,9 +64,10 @@ To learn more about this template and Dagster in general:
 
 ## Todo
 
-1. clean the code (remove dead code (are the jobs and schedules still needed?))
-2. document code (add type annotation)
-3. finish course
+1. watch_status checks fail, not sure why. happend after adding new data.
+2. clean the code (remove dead code (are the jobs and schedules still needed?))
+3. document code (add type annotation)
+4. finish course
 
 ## Done
 
