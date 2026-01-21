@@ -13,7 +13,7 @@ from .data_assets.inputs import (
 # Check: watch_status has no duplicate tconst
 # -------------------------------------------------------------------
 @dg.asset_check(asset=watch_status, blocking=True)
-def watch_status_has_no_duplicate_tconst():
+def watch_status_has_no_duplicate_tconst() -> dg.AssetCheckResult:
     """Ensure the watch_status CSV contains no duplicate tconst values."""
 
     dtypes = {
@@ -42,7 +42,7 @@ def watch_status_has_no_duplicate_tconst():
 # -------------------------------------------------------------------
 # Factory: generic tconst existence check
 # -------------------------------------------------------------------
-def create_tconst_check(asset_name: str):
+def create_tconst_check(asset_name: str) -> dg.AssetCheckResult:
     """
     Creates a check ensuring that all tconst values in `asset`
     exist in title_basics.
@@ -54,7 +54,7 @@ def create_tconst_check(asset_name: str):
         additional_ins={"title_basics": dg.AssetIn("title_basics")},
         blocking=True,
     )
-    def _check(context, asset_value, title_basics):
+    def _check(context, asset_value, title_basics) -> dg.AssetCheckResult:
         # asset_value is the value of the asset being checked (comes from the decorator "asset")
         # title_basics comes from additional_ins
         # NOTE: the asset to be checked must always come first
@@ -72,8 +72,10 @@ def create_tconst_check(asset_name: str):
 
 
 # Instantiate checks
-watch_status_check = create_tconst_check("watch_status")
-watched_dates_check = create_tconst_check("watched_dates_and_scores")
+watch_status_check: dg.AssetCheckResult = create_tconst_check("watch_status")
+watched_dates_check: dg.AssetCheckResult = create_tconst_check(
+    "watched_dates_and_scores"
+)
 
 
 # -------------------------------------------------------------------
@@ -85,8 +87,12 @@ watched_dates_check = create_tconst_check("watched_dates_and_scores")
     additional_ins={"watched_dates_and_scores": dg.AssetIn("watched_dates_and_scores")},
     blocking=True,
 )
-def tconsts_in_watch_status(context, watch_status, watched_dates_and_scores):
-    missing = watched_dates_and_scores.index.difference(watch_status.index).tolist()
+def tconsts_in_watch_status(
+    context, watch_status: pd.DataFrame, watched_dates_and_scores: pd.DataFrame
+) -> dg.AssetCheckResult:
+    missing: list = watched_dates_and_scores.index.difference(
+        watch_status.index
+    ).tolist()
     passed = len(missing) == 0
 
     return dg.AssetCheckResult(
@@ -111,19 +117,21 @@ def tconsts_in_watch_status(context, watch_status, watched_dates_and_scores):
     additional_ins={"watched_dates_and_scores": dg.AssetIn("watched_dates_and_scores")},
     blocking=True,
 )
-def watched_dates_marked_as_watched(context, watch_status, watched_dates_and_scores):
+def watched_dates_marked_as_watched(
+    context, watch_status: pd.DataFrame, watched_dates_and_scores: pd.DataFrame
+) -> dg.AssetCheckResult:
     """
     Ensures that any movie with a watched date is marked watched=True in watch_status.
     """
     watched_dates_and_scores["watched"] = True
 
     # Align only overlapping indices
-    overlap = watched_dates_and_scores.join(
+    overlap: pd.DataFrame = watched_dates_and_scores.join(
         watch_status, how="inner", lsuffix="_wd", rsuffix="_ws"
     )
 
     all_true_in_ws = bool(overlap["watched_ws"].all())
-    mismatch = overlap[overlap["watched_ws"] == False].index.unique().to_list()
+    mismatch: list = overlap[overlap["watched_ws"] == False].index.unique().to_list()
 
     return dg.AssetCheckResult(
         passed=all_true_in_ws,

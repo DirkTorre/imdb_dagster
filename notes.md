@@ -24,7 +24,7 @@ Using temporary directory /media/user/Data/dirkv/Code/dagster/imdb_dagster/.tmp_
 2026-01-07 20:53:06 +0100 - dagster - INFO - To persist information across sessions, set the environment variable DAGSTER_HOME to a directory to use.
 ```
 
-in the dagster gui it's possible to select upstream assets and then materialize unsynced assets.: go to the asset, go to asset lineage, select downstream (all), pres the drop down button next to materialize all and select only materialize unsynced.
+In the dagster gui it's possible to select upstream assets and then materialize unsynced assets.: go to the asset, go to asset lineage, select downstream (all), pres the drop down button next to materialize all and select only materialize unsynced.
 
 >>>> DON'T FORGET TO TURN ALL AUTOMATIONS IN THE DAGSTER GUI
 
@@ -46,4 +46,4 @@ I think it doesn't work either, just use the logic i made with file_change_senso
 
 ## input files
 
-make sure to add too many comma's in status
+make sure to add too many comma's in status (wil now give a warning for the lines that are incorrect)

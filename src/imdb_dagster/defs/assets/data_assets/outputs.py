@@ -12,7 +12,7 @@ from .... import helpers
     deps=["my_movie_list", "my_movie_reviews"],
     automation_condition=dg.AutomationCondition.eager(),
 )
-def watch_list_excel(my_movie_list, my_movie_reviews):
+def watch_list_excel(my_movie_list, my_movie_reviews) -> dg.MaterializeResult:
     with pd.ExcelWriter(
         constants.PRODUCT_EXCEL_FILE_PATH, engine="xlsxwriter"
     ) as writer:
@@ -31,7 +31,7 @@ def watch_list_excel(my_movie_list, my_movie_reviews):
     deps=["my_movie_list"],
     automation_condition=dg.AutomationCondition.eager(),
 )
-def watch_list_figure_html(my_movie_list):
+def watch_list_figure_html(my_movie_list) -> dg.MaterializeResult:
     html_path = constants.PRODUCT_FIGURE_FILE_PATH
     helpers.create_movie_recommendations(my_movie_list, html_path)
 

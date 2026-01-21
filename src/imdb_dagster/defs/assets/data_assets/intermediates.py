@@ -19,8 +19,8 @@ from .. import constants
 )
 def indices(
     watched_dates_and_scores=watched_dates_and_scores, watch_status=watch_status
-):
-    needed_indices = watched_dates_and_scores.index.union(watch_status.index)
+) -> dg.MaterializeResult[pd.Index]:
+    needed_indices: pd.Index = watched_dates_and_scores.index.union(watch_status.index)
 
     return dg.MaterializeResult(
         value=needed_indices,
@@ -37,20 +37,20 @@ def indices(
     deps=["title_basics", "indices"],
     automation_condition=dg.AutomationCondition.eager()
 )
-def needed_title_basics(title_basics=title_basics, indices=indices):
-    missing = indices.difference(title_basics.index)
-    present = indices.intersection(title_basics.index)
+def needed_title_basics(title_basics=title_basics, indices=indices) -> dg.MaterializeResult[pd.DataFrame]:
+    missing: pd.Index = indices.difference(title_basics.index)
+    present: pd.Index = indices.intersection(title_basics.index)
     df = title_basics.loc[present]
 
     # Expand genres into boolean columns
-    genre_exploded = df["genres"].str.split(",").explode()
-    genre = (
+    genre_exploded: pd.Series = df["genres"].str.split(",").explode()
+    genre_matrix: pd.DataFrame = (
         pd.crosstab(genre_exploded.index, genre_exploded)
         .add_prefix("genre_")
         .astype(pd.BooleanDtype())
     )
 
-    df_final = df.drop(columns="genres").join(genre)
+    df_final = df.drop(columns="genres").join(genre_matrix)
 
     meta_data: dg.MetadataValue = helpers.get_table_schema(df_final)
 
@@ -71,9 +71,9 @@ def needed_title_basics(title_basics=title_basics, indices=indices):
     deps=["title_ratings", "indices"],
     automation_condition=dg.AutomationCondition.eager()
 )
-def needed_title_ratings(title_ratings=title_ratings, indices=indices):
-    missing = indices.difference(title_ratings.index)
-    present = indices.intersection(title_ratings.index)
+def needed_title_ratings(title_ratings=title_ratings, indices=indices) -> dg.MaterializeResult[pd.DataFrame]:
+    missing: pd.Index = indices.difference(title_ratings.index)
+    present: pd.Index = indices.intersection(title_ratings.index)
     df = title_ratings.loc[present]
 
     meta_data: dg.MetadataValue = helpers.get_table_schema(df)
@@ -99,7 +99,7 @@ def my_movie_list(
     watch_status,
     needed_title_basics,
     needed_title_ratings,
-):
+) -> dg.MaterializeResult[pd.DataFrame]:
     df = (
         watch_status.join(needed_title_ratings, how="left")
         .join(needed_title_basics, how="left")
@@ -108,7 +108,7 @@ def my_movie_list(
         )
     )
 
-    missing = df.index.difference(watch_status.index)
+    missing: pd.Index = df.index.difference(watch_status.index)
 
     meta_data: dg.MetadataValue = helpers.get_table_schema(df)
 
@@ -131,12 +131,12 @@ def my_movie_list(
 def my_movie_reviews(
     watched_dates_and_scores,
     needed_title_basics,
-):
+) -> dg.MaterializeResult[pd.DataFrame]:
     df = watched_dates_and_scores.join(
         needed_title_basics[["primaryTitle", "originalTitle", "startYear"]], how="left"
     ).sort_values("date")
 
-    missing = df.index.difference(watched_dates_and_scores.index)
+    missing: pd.Index = df.index.difference(watched_dates_and_scores.index)
 
     meta_data: dg.MetadataValue = helpers.get_table_schema(df)
 

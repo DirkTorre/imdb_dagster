@@ -13,23 +13,24 @@ def create_download_asset(
     download_url: str,
     description: str,
     stale_after_hours: int = 24,
-) -> dg.AssetsDefinition:
+) -> dg.MaterializeResult:
     """Factory to create file download assets with staleness checking."""
 
     @dg.asset(
         name=name,
         group_name="raw_inputs",
         description=description,
-        automation_condition=dg.AutomationCondition.on_cron("* * * * *") & dg.AutomationCondition.on_missing(), # makes sure it checks every minute if asset exists.
+        automation_condition=dg.AutomationCondition.on_cron("* * * * *")
+        & dg.AutomationCondition.on_missing(),  # makes sure it checks every minute if asset exists.
     )
-    def _asset(context: dg.AssetExecutionContext):
+    def _asset(context: dg.AssetExecutionContext) -> dg.MaterializeResult:
         """Download the file only if it's stale or missing."""
 
         # Check if file exists and is fresh
         if os.path.exists(file_path):
-            mod_time = os.path.getmtime(file_path)
-            current_time = time.time()
-            hours_old = (current_time - mod_time) / 3600
+            mod_time: float = os.path.getmtime(file_path)
+            current_time: float = time.time()
+            hours_old: float = (current_time - mod_time) / 3600
 
             if hours_old < stale_after_hours:
                 context.log.info(

@@ -38,9 +38,9 @@ def file_download_sensor(
                     run_key=f"{sensor_name}_missing_{datetime.now().isoformat()}"
                 )
 
-            mod_time = path.stat().st_mtime
-            current_time = time.time()
-            hours_old = (current_time - mod_time) / 3600
+            mod_time: float = path.stat().st_mtime
+            current_time: float = time.time()
+            hours_old: float = (current_time - mod_time) / 3600
 
             if hours_old > stale_after_hours:
                 context.log.info(
@@ -82,7 +82,7 @@ def create_file_change_sensor(
     sensor_name: str,
     job: dg.JobDefinition,
     file_path: str,
-    minimum_interval_seconds: int = 60*5,
+    minimum_interval_seconds: int = 60 * 5,
 ) -> dg.SensorDefinition:
     """
     Factory function to create file change sensors.
@@ -104,12 +104,14 @@ def create_file_change_sensor(
         minimum_interval_seconds=minimum_interval_seconds,
         default_status=dg.DefaultSensorStatus.RUNNING,
     )
-    def file_change_sensor(context: dg.SensorEvaluationContext):
+    def file_change_sensor(
+        context: dg.SensorEvaluationContext,
+    ) -> Optional[dg.RunRequest]:
         try:
             last_mtime = float(context.cursor) if context.cursor else 0.0
 
             if path.exists():
-                current_mtime = path.stat().st_mtime
+                current_mtime: float = path.stat().st_mtime
 
                 if current_mtime > last_mtime:
                     run_key = f"{sensor_name}_file_change_{int(current_mtime)}"
@@ -171,24 +173,26 @@ def upstream_sensor_watched_dates_and_scores(
     context: dg.SensorEvaluationContext,
 ) -> Optional[dg.RunRequest]:
     """Sensor that triggers when upstream assets of watched_dates_and_scores change."""
-    title_basics_raw_materialization = context.instance.get_latest_materialization_event(
-        dg.AssetKey("title_basics_raw")
+    title_basics_raw_materialization: dg.MaterializationEvent = (
+        context.instance.get_latest_materialization_event(
+            dg.AssetKey("title_basics_raw")
+        )
     )
-    title_basics_materialization = context.instance.get_latest_materialization_event(
-        dg.AssetKey("title_basics")
+    title_basics_materialization: dg.MaterializationEvent = (
+        context.instance.get_latest_materialization_event(dg.AssetKey("title_basics"))
     )
 
     if not title_basics_raw_materialization or not title_basics_materialization:
         context.log.info(
-        "Upstream asset change detected for watched_dates_and_scores -> triggering jobs"
-    )
+            "Upstream asset change detected for watched_dates_and_scores -> triggering jobs"
+        )
         return dg.RunRequest(
-            run_key=f"{context.cursor}_upstream_refresh",
-            run_config={}
+            run_key=f"{context.cursor}_upstream_refresh", run_config={}
         )
     else:
-        return dg.SkipReason("Upstream assets title_basics and title_basics_raw are already materialized")
-
+        return dg.SkipReason(
+            "Upstream assets title_basics and title_basics_raw are already materialized"
+        )
 
 
 @dg.sensor(
@@ -199,20 +203,23 @@ def upstream_sensor_watch_status(
     context: dg.SensorEvaluationContext,
 ) -> Optional[dg.RunRequest]:
     """Sensor that triggers when upstream assets of watch_status change."""
-    title_ratings_raw_materialization = context.instance.get_latest_materialization_event(
-        dg.AssetKey("title_ratings_raw")
+    title_ratings_raw_materialization: dg.MaterializationEvent = (
+        context.instance.get_latest_materialization_event(
+            dg.AssetKey("title_ratings_raw")
+        )
     )
-    title_ratings_materialization = context.instance.get_latest_materialization_event(
-        dg.AssetKey("title_ratings")
+    title_ratings_materialization: dg.MaterializationEvent = (
+        context.instance.get_latest_materialization_event(dg.AssetKey("title_ratings"))
     )
 
     if not title_ratings_raw_materialization or not title_ratings_materialization:
         context.log.info(
-        "Upstream asset change detected for watch_status -> triggering jobs"
-    )
+            "Upstream asset change detected for watch_status -> triggering jobs"
+        )
         return dg.RunRequest(
-            run_key=f"{context.cursor}_upstream_refresh",
-            run_config={}
+            run_key=f"{context.cursor}_upstream_refresh", run_config={}
         )
     else:
-        return dg.SkipReason("Upstream assets title_ratings and title_ratings_raw are already materialized")
+        return dg.SkipReason(
+            "Upstream assets title_ratings and title_ratings_raw are already materialized"
+        )

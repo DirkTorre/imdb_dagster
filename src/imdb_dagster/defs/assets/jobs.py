@@ -8,30 +8,25 @@ from .data_assets import inputs, outputs
     "++D" - materializes D and two levels of upstreams (B, C, D)
 """
 
-
-# je kan ook anders denken, als een input veranderd, genereer dan alles upstream daarvan
-
-# Define a job that includes the output assets
-
-
-# deze job moet runnen als de download sensors af gaan.
+# runs when title_basics is out of date
 title_basics_job = dg.define_asset_job(
     name="title_basics_job",
     selection=["*title_basics"]
 )
 
+# runs when title_ratings is out of date
 title_ratings_job = dg.define_asset_job(
     name="title_ratings_job",
     selection=["*title_ratings"]
 )
 
-
+# runs when watched_dates_and_scores is updated
 watched_dates_and_scores_job = dg.define_asset_job(
     name="watched_dates_and_scores_job",
     selection=["watched_dates_and_scores*"]
 )
 
-
+# runs when watch_status is updated
 watch_status_job = dg.define_asset_job(
     name="watch_status_job", selection=["watch_status*"]
 )

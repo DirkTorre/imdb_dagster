@@ -7,6 +7,7 @@ import requests
 from datetime import datetime, timedelta
 from . import raw_inputs
 from .... import helpers
+from typing import List, Dict, Any
 
 
 from dagster import MetadataValue, TableRecord, TableSchema, TableColumn
@@ -16,9 +17,11 @@ from dagster import MetadataValue, TableRecord, TableSchema, TableColumn
     deps=[raw_inputs.title_basics],
     group_name="inputs",
     description="Processed IMDB title_basics DataFrame",
-    automation_condition=dg.AutomationCondition.eager()
+    automation_condition=dg.AutomationCondition.eager(),
 )
-def title_basics(context: dg.AssetExecutionContext):
+def title_basics(
+    context: dg.AssetExecutionContext,
+) -> dg.MaterializeResult[pd.DataFrame]:
     cols_to_use = [
         "tconst",
         "primaryTitle",
@@ -57,9 +60,11 @@ def title_basics(context: dg.AssetExecutionContext):
     deps=[raw_inputs.title_ratings],
     group_name="inputs",
     description="Processed IMDB title_ratings DataFrame",
-    automation_condition=dg.AutomationCondition.eager()
+    automation_condition=dg.AutomationCondition.eager(),
 )
-def title_ratings(context: dg.AssetExecutionContext):
+def title_ratings(
+    context: dg.AssetExecutionContext,
+) -> dg.MaterializeResult[pd.DataFrame]:
     dtypes = {"averageRating": pd.Float32Dtype(), "numVotes": pd.Int32Dtype()}
 
     df = pd.read_csv(
@@ -91,7 +96,18 @@ def title_ratings(context: dg.AssetExecutionContext):
     deps=[title_basics],
     automation_condition=dg.AutomationCondition.eager(),
 )
-def watched_dates_and_scores():
+def watched_dates_and_scores(
+    context: dg.AssetExecutionContext,
+) -> dg.MaterializeResult[pd.DataFrame]:
+    with open(constants.DATES_AND_SCORES_FILE_PATH, "r") as f:
+        lines = f.readlines()
+
+    # Check for inconsistent column counts (extra commas)
+    header_cols = len(lines[0].split(","))
+    for i, line in enumerate(lines[1:], start=2):
+        if len(line.split(",")) != header_cols:
+            context.log.warning(f"Line {i} has inconsistent number of columns")
+
     dtypes = {
         "tconst": pd.StringDtype(),
         "enjoyment_score": pd.Float32Dtype(),
@@ -107,9 +123,9 @@ def watched_dates_and_scores():
     # Convert datetime to date to retain only the date component
     df["date"] = df["date"].dt.date
 
-    date_count = df.date.isna().value_counts()
-    enjoyment_count = df.enjoyment_score.isna().value_counts()
-    quality_counts = df.quality_score.isna().value_counts()
+    date_count: pd.Series = df.date.isna().value_counts()
+    enjoyment_count: pd.Series = df.enjoyment_score.isna().value_counts()
+    quality_counts: pd.Series = df.quality_score.isna().value_counts()
 
     meta_data: dg.MetadataValue = helpers.get_table_schema(df)
 
@@ -135,7 +151,18 @@ def watched_dates_and_scores():
     deps=[title_basics],
     automation_condition=dg.AutomationCondition.eager(),
 )
-def watch_status():
+def watch_status(
+    context: dg.AssetExecutionContext,
+) -> dg.MaterializeResult[pd.DataFrame]:
+    with open(constants.STATUS_FILE_PATH, "r") as f:
+        lines = f.readlines()
+
+    # Check for inconsistent column counts (extra commas)
+    header_cols = len(lines[0].split(","))
+    for i, line in enumerate(lines[1:], start=2):
+        if len(line.split(",")) != header_cols:
+            context.log.warning(f"Line {i} has inconsistent number of columns")
+
     dtypes = {
         "tconst": pd.StringDtype(),
         "watched": pd.BooleanDtype(),

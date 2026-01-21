@@ -7,7 +7,7 @@ import dagster as dg
 from dagster import MetadataValue, TableRecord
 
 
-def create_movie_recommendations(final_status, filepath):
+def create_movie_recommendations(final_status, filepath) -> None:
     """
     Generate Bokeh visualizations for unwatched movies and save to HTML.
 
@@ -195,13 +195,19 @@ def get_table_schema(df: pd.DataFrame, max_preview: int = 10) -> MetadataValue:
             columns.append(dg.TableColumn(col, dtype_str, description))
         except TypeError:
             # Fallback: construct via kwargs for different dagster versions
-            columns.append(dg.TableColumn(name=col, type=dtype_str, description=description))
+            columns.append(
+                dg.TableColumn(name=col, type=dtype_str, description=description)
+            )
 
     records = []
     # Only include JSON serializable primitives; fallback to string
     for row in preview_df.to_dict(orient="records"):
         cleaned = {
-            key: (value if isinstance(value, (str, int, float, bool, type(None))) else str(value))
+            key: (
+                value
+                if isinstance(value, (str, int, float, bool, type(None)))
+                else str(value)
+            )
             for key, value in row.items()
         }
         try:
