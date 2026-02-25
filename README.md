@@ -142,7 +142,13 @@ To learn more about this template and Dagster in general:
 
 ### Todo
 
-1. finish course
+- create new dagster workspace git project
+- create production and local environemnt code
+- connect imdb database
+- recreate working code for production using sql and polars
+- get info from onedrive excel files: https://github.com/OneDrive/onedrive-sdk-python
+
+- DONT MAKE A MACHINE LEARNING PIPELINE
 
 ### Done
 
